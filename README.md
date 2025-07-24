@@ -2,23 +2,21 @@
 Cloud-Synced Account Ledger
 A simple, modern, and real-time expense and income tracker that syncs your data to the cloud. Access your financial ledger from any device, anywhere in the world.
 
-🚀 Live Demo
-[Link to your live application here]
 
 ✨ Features
-This application provides a complete solution for personal financial tracking with the power of the cloud.
+  This application provides a complete solution for personal financial tracking with the power of the cloud.
 
-☁️ Cloud Synchronization: All data is securely stored and synced in real-time using Google's Firebase Firestore.
+  ☁️ Cloud Synchronization: All data is securely stored and synced in real-time using Google's Firebase Firestore.
 
-🌐 Access Anywhere: Create a new ledger and get a unique ID. Use this ID to load your ledger on any computer or mobile device.
+  🌐 Access Anywhere: Create a new ledger and get a unique ID. Use this ID to load your ledger on any computer or mobile device.
 
-📊 Real-time Dashboard:
+  📊 Real-time Dashboard:
 
-View your current balance instantly.
+    View your current balance instantly.
 
-Track total inflow (credit) and outflow (debit) for specific periods.
+  Track total inflow (credit) and outflow (debit) for specific periods.
 
-💸 Transaction Management:
+  💸 Transaction Management:
 
 Easily add income (credit) or expenses (debit).
 
