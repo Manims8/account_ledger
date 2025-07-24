@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Account Ledger</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.8.1/flowbite.min.css" rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .positive {
+            color: #22c55e; /* green-500 */
+        }
+        .negative {
+            color: #ef4444; /* red-500 */
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937; /* gray-800 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563; /* gray-600 */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; /* gray-500 */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-6xl mx-auto bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8">
+        
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 border-b border-gray-700 pb-4">
+            <h1 class="text-2xl md:text-3xl font-bold text-white">Account Ledger</h1>
+            <div class="mt-4 md:mt-0 text-right">
+                <p class="text-gray-400 text-sm">Current Balance</p>
+                <p id="currentBalance" class="text-3xl font-bold text-green-400">₹0.00</p>
+            </div>
+        </div>
+
+        <!-- Analysis Section -->
+        <div id="analysisSection" class="flex justify-end items-center gap-4 text-xs text-right mb-4">
+             <div>
+                <span class="text-gray-400">Inflow: </span>
+                <span id="totalCredit" class="font-medium text-green-400">₹0.00</span>
+            </div>
+            <div>
+                <span class="text-gray-400">Outflow: </span>
+                <span id="totalDebit" class="font-medium text-red-400">₹0.00</span>
+            </div>
+        </div>
+
+        <!-- Controls: Filter and Download -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <div class="flex items-center gap-2">
+                <label for="filter" class="text-sm font-medium">Show:</label>
+                <select id="filter" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2">
+                    <option value="all">All Time</option>
+                    <option value="month">This Month</option>
+                    <option value="week">This Week</option>
+                </select>
+            </div>
+            <button id="downloadBtn" class="w-full md:w-auto text-white bg-sky-600 hover:bg-sky-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-transform transform hover:scale-105 flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 18"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 1v11m0 0 4-4m-4 4L4 8m11 4v3a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-3"/></svg>
+                Download as Excel (.csv)
+            </button>
+        </div>
+
+
+        <!-- Opening Balance Input -->
+        <div id="openingBalanceContainer" class="mb-6 p-4 bg-gray-700/50 rounded-lg flex flex-col sm:flex-row items-center gap-4">
+            <label for="openingBalance" class="font-semibold text-lg whitespace-nowrap">Opening Balance:</label>
+            <input type="number" id="openingBalance" placeholder="e.g., 50000" class="w-full sm:w-auto flex-grow bg-gray-900 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+            <button id="setOpeningBalanceBtn" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-transform transform hover:scale-105">Set</button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Transactions Table -->
+            <div class="lg:col-span-2">
+                <h2 class="text-xl font-semibold mb-4 text-white">Transactions</h2>
+                <div class="overflow-auto max-h-96 bg-gray-900 rounded-lg">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs text-gray-300 uppercase bg-gray-700 sticky top-0">
+                            <tr>
+                                <th scope="col" class="px-4 py-3">Date</th>
+                                <th scope="col" class="px-4 py-3">Description</th>
+                                <th scope="col" class="px-4 py-3">Category</th>
+                                <th scope="col" class="px-4 py-3 text-right">Credit (+)</th>
+                                <th scope="col" class="px-4 py-3 text-right">Debit (-)</th>
+                                <th scope="col" class="px-4 py-3 text-right">Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transaction-table-body">
+                            <!-- Rows will be inserted here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Category Analysis -->
+            <div class="lg:col-span-1">
+                 <h2 class="text-xl font-semibold mb-4 text-white">Spending by Category</h2>
+                 <div id="category-analysis-container" class="bg-gray-900 rounded-lg p-4 max-h-96 overflow-auto">
+                    <!-- Category spending will be inserted here -->
+                 </div>
+            </div>
+        </div>
+
+        <!-- Add Transaction Form -->
+        <div class="bg-gray-700/50 p-6 rounded-lg mt-8">
+            <h2 class="text-xl font-semibold mb-4 text-white">Add New Transaction</h2>
+            <form id="transaction-form" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 items-end">
+                <div>
+                    <label for="date" class="block mb-1 text-sm font-medium">Date</label>
+                    <input type="date" id="date" class="bg-gray-900 border border-gray-600 text-gray-200 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" required>
+                </div>
+                <div class="xl:col-span-2">
+                    <label for="description" class="block mb-1 text-sm font-medium">Description</label>
+                    <input type="text" id="description" placeholder="e.g., Lunch, Metro Card" class="bg-gray-900 border border-gray-600 text-gray-200 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" required>
+                </div>
+                 <div>
+                    <label for="category" class="block mb-1 text-sm font-medium">Category</label>
+                    <select id="category" class="bg-gray-900 border border-gray-600 text-gray-200 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                        <option>Food</option>
+                        <option>Transport</option>
+                        <option>Academics</option>
+                        <option>Bills & Recharges</option>
+                        <option>Shopping</option>
+                        <option>Entertainment</option>
+                        <option>Health</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="amount" class="block mb-1 text-sm font-medium">Amount</label>
+                    <input type="number" id="amount" step="0.01" placeholder="Amount" class="bg-gray-900 border border-gray-600 text-gray-200 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" required>
+                </div>
+                <div>
+                    <label for="type" class="block mb-1 text-sm font-medium">Type</label>
+                    <select id="type" class="bg-gray-900 border border-gray-600 text-gray-200 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                        <option value="credit">Credit / Deposit</option>
+                        <option value="debit" selected>Debit / Withdrawal</option>
+                    </select>
+                </div>
+                <div class="xl:col-start-5">
+                     <button type="submit" class="w-full text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:outline-none focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-transform transform hover:scale-105">Add Transaction</button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Data Management Section -->
+        <div class="border-t border-gray-700 mt-8 pt-6">
+            <h2 class="text-xl font-semibold mb-4 text-white">Data Management</h2>
+            <p class="text-sm text-gray-400 mb-4">Save a complete backup file to your computer, or load a backup to restore your data.</p>
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button id="saveBackupBtn" class="w-full sm:w-auto text-white bg-indigo-600 hover:bg-indigo-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-transform transform hover:scale-105 flex items-center justify-center gap-2">
+                    Save Backup (.json)
+                </button>
+                <button id="loadBackupBtn" class="w-full sm:w-auto text-gray-900 bg-gray-200 hover:bg-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-transform transform hover:scale-105 flex items-center justify-center gap-2">
+                    Load Backup (.json)
+                </button>
+                <input type="file" id="fileLoader" class="hidden" accept=".json">
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM Elements
+            const transactionForm = document.getElementById('transaction-form');
+            const transactionTableBody = document.getElementById('transaction-table-body');
+            const currentBalanceEl = document.getElementById('currentBalance');
+            const dateInput = document.getElementById('date');
+            const openingBalanceInput = document.getElementById('openingBalance');
+            const setOpeningBalanceBtn = document.getElementById('setOpeningBalanceBtn');
+            const openingBalanceContainer = document.getElementById('openingBalanceContainer');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const filterSelect = document.getElementById('filter');
+            const totalCreditEl = document.getElementById('totalCredit');
+            const totalDebitEl = document.getElementById('totalDebit');
+            const categoryAnalysisContainer = document.getElementById('category-analysis-container');
+            const saveBackupBtn = document.getElementById('saveBackupBtn');
+            const loadBackupBtn = document.getElementById('loadBackupBtn');
+            const fileLoader = document.getElementById('fileLoader');
+
+            // Application State
+            let allTransactions = [];
+            let openingBalance = 0;
+            let isOpeningBalanceSet = false;
+
+            // --- BROWSER LOCAL STORAGE FUNCTIONS ---
+            const saveDataToBrowser = () => {
+                localStorage.setItem('ledger_transactions_v4', JSON.stringify(allTransactions));
+                localStorage.setItem('ledger_opening_balance_v4', openingBalance);
+                localStorage.setItem('ledger_is_balance_set_v4', isOpeningBalanceSet);
+            };
+
+            const loadDataFromBrowser = () => {
+                const savedTransactions = localStorage.getItem('ledger_transactions_v4');
+                const savedOpeningBalance = localStorage.getItem('ledger_opening_balance_v4');
+                const savedIsBalanceSet = localStorage.getItem('ledger_is_balance_set_v4');
+
+                if (savedIsBalanceSet === 'true') {
+                    isOpeningBalanceSet = true;
+                    openingBalance = parseFloat(savedOpeningBalance) || 0;
+                    allTransactions = savedTransactions ? JSON.parse(savedTransactions) : [];
+                    openingBalanceContainer.style.display = 'none';
+                }
+            };
+
+            // --- UTILITY FUNCTIONS ---
+            const formatCurrency = (amount) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 }).format(amount);
+
+            // --- RENDER FUNCTION ---
+            const render = () => {
+                transactionTableBody.innerHTML = '';
+                categoryAnalysisContainer.innerHTML = '';
+                
+                if (!isOpeningBalanceSet) {
+                    transactionTableBody.innerHTML = `<tr class="border-b border-gray-700"><td colspan="6" class="text-center py-8 text-gray-500">Set an opening balance to begin.</td></tr>`;
+                    categoryAnalysisContainer.innerHTML = `<p class="text-center text-gray-500">No data to analyze.</p>`;
+                    currentBalanceEl.textContent = formatCurrency(0);
+                    totalCreditEl.textContent = formatCurrency(0);
+                    totalDebitEl.textContent = formatCurrency(0);
+                    return;
+                }
+                
+                const filteredTransactions = getFilteredTransactions();
+                let runningBalance = openingBalance;
+                let totalCredit = 0;
+                let totalDebit = 0;
+                let categorySpending = {};
+                
+                let totalBalance = openingBalance;
+                allTransactions.forEach(tx => {
+                    totalBalance += tx.type === 'credit' ? tx.amount : -tx.amount;
+                });
+                currentBalanceEl.textContent = formatCurrency(totalBalance);
+                currentBalanceEl.className = `text-3xl font-bold ${totalBalance >= 0 ? 'text-green-400' : 'text-red-400'}`;
+
+
+                const openingRow = document.createElement('tr');
+                openingRow.className = 'bg-gray-800 border-b border-gray-700 font-semibold';
+                openingRow.innerHTML = `
+                    <td class="px-4 py-3 italic text-gray-400" colspan="5">Opening Balance</td>
+                    <td class="px-4 py-3 text-right">${formatCurrency(openingBalance)}</td>
+                `;
+                transactionTableBody.appendChild(openingRow);
+
+                filteredTransactions.forEach(tx => {
+                    runningBalance += tx.type === 'credit' ? tx.amount : -tx.amount;
+                    if(tx.type === 'credit') {
+                        totalCredit += tx.amount;
+                    } else {
+                        totalDebit += tx.amount;
+                        if (!categorySpending[tx.category]) {
+                            categorySpending[tx.category] = 0;
+                        }
+                        categorySpending[tx.category] += tx.amount;
+                    }
+
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-gray-700 hover:bg-gray-700/50';
+                    row.innerHTML = `
+                        <td class="px-4 py-3">${tx.date}</td>
+                        <td class="px-4 py-3">${tx.description}</td>
+                        <td class="px-4 py-3 text-gray-400">${tx.category || 'N/A'}</td>
+                        <td class="px-4 py-3 text-right positive">${tx.type === 'credit' ? formatCurrency(tx.amount) : '-'}</td>
+                        <td class="px-4 py-3 text-right negative">${tx.type === 'debit' ? formatCurrency(tx.amount) : '-'}</td>
+                        <td class="px-4 py-3 text-right font-medium">${formatCurrency(runningBalance)}</td>
+                    `;
+                    transactionTableBody.appendChild(row);
+                });
+                
+                if (filteredTransactions.length === 0) {
+                     transactionTableBody.innerHTML += `<tr class="border-b border-gray-700"><td colspan="6" class="text-center py-8 text-gray-500">No transactions in this period.</td></tr>`;
+                }
+                
+                totalCreditEl.textContent = formatCurrency(totalCredit);
+                totalDebitEl.textContent = formatCurrency(totalDebit);
+                
+                renderCategoryAnalysis(categorySpending, totalDebit);
+            };
+            
+            const renderCategoryAnalysis = (spending, totalSpending) => {
+                categoryAnalysisContainer.innerHTML = '';
+                if (Object.keys(spending).length === 0) {
+                    categoryAnalysisContainer.innerHTML = `<p class="text-center text-gray-500">No spending to analyze for this period.</p>`;
+                    return;
+                }
+
+                const sortedCategories = Object.entries(spending).sort(([,a],[,b]) => b-a);
+
+                sortedCategories.forEach(([category, amount]) => {
+                    const percentage = totalSpending > 0 ? (amount / totalSpending * 100).toFixed(1) : 0;
+                    const analysisEl = document.createElement('div');
+                    analysisEl.className = 'mb-3';
+                    analysisEl.innerHTML = `
+                        <div class="flex justify-between items-center mb-1 text-sm">
+                            <span class="font-medium">${category}</span>
+                            <span class="text-gray-400">${formatCurrency(amount)}</span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2.5">
+                            <div class="bg-blue-500 h-2.5 rounded-full" style="width: ${percentage}%"></div>
+                        </div>
+                    `;
+                    categoryAnalysisContainer.appendChild(analysisEl);
+                });
+            };
+
+            const getFilteredTransactions = () => {
+                const filter = filterSelect.value;
+                const now = new Date();
+                
+                if (filter === 'all') return allTransactions;
+
+                if (filter === 'month') {
+                    return allTransactions.filter(tx => {
+                        const txDate = new Date(tx.date);
+                        return txDate.getMonth() === now.getMonth() && txDate.getFullYear() === now.getFullYear();
+                    });
+                }
+
+                if (filter === 'week') {
+                    const oneWeekAgo = new Date();
+                    oneWeekAgo.setDate(now.getDate() - 7);
+                    return allTransactions.filter(tx => new Date(tx.date) >= oneWeekAgo);
+                }
+                return [];
+            };
+
+            // --- EVENT HANDLERS ---
+            setOpeningBalanceBtn.addEventListener('click', () => {
+                const balanceValue = parseFloat(openingBalanceInput.value);
+                if (!isNaN(balanceValue)) {
+                    openingBalance = balanceValue;
+                    isOpeningBalanceSet = true;
+                    allTransactions = []; 
+                    openingBalanceContainer.style.display = 'none'; 
+                    saveDataToBrowser();
+                    render();
+                } else {
+                    alert('Please enter a valid number for the opening balance.');
+                }
+            });
+
+            transactionForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (!isOpeningBalanceSet) {
+                    alert('Please set an opening balance first.');
+                    return;
+                }
+                const newTransaction = {
+                    id: Date.now(),
+                    date: document.getElementById('date').value,
+                    description: document.getElementById('description').value,
+                    category: document.getElementById('category').value,
+                    amount: parseFloat(document.getElementById('amount').value),
+                    type: document.getElementById('type').value
+                };
+                if (!newTransaction.date || !newTransaction.description || isNaN(newTransaction.amount) || newTransaction.amount <= 0) {
+                    alert('Please fill in all fields with valid values.');
+                    return;
+                }
+                allTransactions.push(newTransaction);
+                allTransactions.sort((a, b) => new Date(a.date) - new Date(b.date));
+                saveDataToBrowser();
+                render();
+                transactionForm.reset();
+                dateInput.valueAsDate = new Date();
+            });
+            
+            filterSelect.addEventListener('change', render);
+
+            downloadBtn.addEventListener('click', () => {
+                if (!isOpeningBalanceSet || allTransactions.length === 0) {
+                    alert('No data to download.');
+                    return;
+                }
+
+                const transactionsToExport = getFilteredTransactions();
+                let csvContent = "Date,Description,Category,Credit,Debit,Balance\n";
+                let runningBalance = openingBalance;
+
+                transactionsToExport.forEach(tx => {
+                    runningBalance += tx.type === 'credit' ? tx.amount : -tx.amount;
+                    const credit = tx.type === 'credit' ? tx.amount.toFixed(2) : '';
+                    const debit = tx.type === 'debit' ? tx.amount.toFixed(2) : '';
+                    const description = `"${tx.description.replace(/"/g, '""')}"`;
+                    csvContent += `${tx.date},${description},${tx.category},${credit},${debit},${runningBalance.toFixed(2)}\n`;
+                });
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", `account_ledger_${new Date().toISOString().slice(0,10)}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+
+            // --- DATA MANAGEMENT EVENT HANDLERS (NEW) ---
+            saveBackupBtn.addEventListener('click', () => {
+                if (!isOpeningBalanceSet) {
+                    alert('Please set an opening balance before saving a backup.');
+                    return;
+                }
+                const dataToSave = {
+                    openingBalance: openingBalance,
+                    transactions: allTransactions,
+                    isOpeningBalanceSet: isOpeningBalanceSet
+                };
+                const dataStr = JSON.stringify(dataToSave, null, 2);
+                const blob = new Blob([dataStr], {type: "application/json"});
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', `ledger-backup-${new Date().toISOString().slice(0,10)}.json`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+
+            loadBackupBtn.addEventListener('click', () => {
+                fileLoader.click();
+            });
+
+            fileLoader.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (!file) {
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (data && typeof data.openingBalance === 'number' && Array.isArray(data.transactions)) {
+                            openingBalance = data.openingBalance;
+                            allTransactions = data.transactions;
+                            isOpeningBalanceSet = data.isOpeningBalanceSet || true;
+                            
+                            if (isOpeningBalanceSet) {
+                                openingBalanceContainer.style.display = 'none';
+                            }
+
+                            saveDataToBrowser(); // Save the newly loaded data to browser storage
+                            render();
+                            alert('Backup loaded successfully!');
+                        } else {
+                            alert('Invalid backup file format.');
+                        }
+                    } catch (error) {
+                        alert('Error reading backup file. Make sure it is a valid .json backup file from this application.');
+                        console.error("Error parsing backup file:", error);
+                    }
+                };
+                reader.readAsText(file);
+                fileLoader.value = ''; // Reset file input
+            });
+
+            // --- INITIALIZATION ---
+            dateInput.valueAsDate = new Date();
+            loadDataFromBrowser();
+            render();
+        });
+    </script>
+</body>
+</html>
